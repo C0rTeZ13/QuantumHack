@@ -8,46 +8,25 @@ from scipy.sparse import random
 
 from scipy import stats
 
-import pyqiopt as pq
+data = np.genfromtxt("task-1-stocks.csv", delimiter=',')
 
-risk_level = 0.2
-data = np.load("task-1-stocks.csv")
-P = 1000000
+output_data = np.ones((100, 100))
+risk_coef = 2
 
-for i in data:
+profit = np.ones((100, 100))
+for i in range(99):
+    profit[i] = (data[i + 1] - data[i]) / data[i]
 
-density = 0.01
+covar = np.ones((100, 100))
 
-random_state = 42
+for i in range(100):
+    for j in range(100):
+        covar[i][j] = np.cov(profit[i], profit[j])[0, 1]
 
-sparse_matrix = random(rows, cols, density=density, random_state=random_state)
+print(covar)
 
-arr = sparse_matrix.todense()
+for i in range(100):
+    for j in range(100):
+        output_data[i][j] = -((data[i][99] - data[i][0]) / data[i][0]) + risk_coef * covar[i][j]
 
-arr = (arr + arr.T) / 2
-
-print("Non zero elements:", np.count_nonzero(arr))
-
-start = time()
-
-print("Numpy matrix example")
-
-sol = pq.solve(arr, number_of_runs=1, number_of_steps=100, return_samples=False, verbose=10)
-
-print(sol.vector, sol.objective)
-
-arr_sp = coo_matrix(arr) # for pyqiopt input use COO format only
-
-print("Sparse COO matrix example")
-
-sol = pq.solve(arr_sp, number_of_runs=1, number_of_steps=100, return_samples=False, verbose=10)
-
-print(sol.vector, sol.objective)
-
-print("Sampling example")
-
-sol = pq.solve(arr_sp, number_of_runs=1, number_of_steps=100, return_samples=True, verbose=10)
-
-print(sol.samples)
-
-print("Script time:", time()-start)
+print(output_data)
