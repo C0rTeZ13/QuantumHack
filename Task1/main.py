@@ -14,8 +14,9 @@ output_data = np.ones((100, 100))
 risk_coef = 2
 
 profit = np.ones((100, 100))
-for i in range(99):
-    profit[i] = (data[i + 1] - data[i]) / data[i]
+for i in range(100):
+    for j in range(99):
+        profit[i][j] = (data[i][j + 1] - data[i][j]) / data[i][j]
 
 covar = np.ones((100, 100))
 
@@ -27,6 +28,9 @@ print(covar)
 
 for i in range(100):
     for j in range(100):
-        output_data[i][j] = -((data[i][99] - data[i][0]) / data[i][0]) + risk_coef * covar[i][j]
+        output_data[i][j] = round(-((data[j][99] - data[j][0]) / data[j][0]) + risk_coef * covar[i][j])
 
-print(output_data)
+for i in range(100):
+    for j in range(100):
+        print(output_data[i, j], end=' ')
+    print(' ')
