@@ -59,7 +59,6 @@ for i in range(num_stocks):
                     deviation_risk * (covar[i][j] - max_risk)**2 * (2**k) * (2**l)
                 )
 
-number = 0
 good = []
 good_returns = []
 good_risk = []
@@ -69,6 +68,7 @@ good_actions = []
 max_attempts = 10
 attempts = 0
 while(good == [] and attempts < max_attempts):
+    number = 0
     attempts += 1
     arr_sp = sparse.coo_matrix(Q)
     sol = pq.solve(arr_sp, number_of_runs=1, number_of_steps=500, return_samples=True, verbose=10)
