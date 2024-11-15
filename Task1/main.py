@@ -64,6 +64,7 @@ good = []
 good_returns = []
 good_risk = []
 good_return = []
+good_actions = []
 
 max_attempts = 10
 attempts = 0
@@ -123,10 +124,12 @@ while(good == [] and attempts < max_attempts):
             good_returns.append(returns_)
             good_risk.append(risk)
             good_return.append(((sum_[-1]/sum_[0])-1)*100)
+            good_actions.append(portfel[number])
     if good:
         print(f"Лучший найденный портфель: {good[0]}")
         print(f"Риск: {good_risk[0]}")
         print(f"Доходность портфеля (в процентах): {good_return[0]}")
+        print(f"Акции для покупки: {good_actions[0]}")
 
 y_values = good_returns[0]
 x_values = np.arange(1, len(y_values) + 1)
