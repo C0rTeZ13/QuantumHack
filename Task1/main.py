@@ -1,13 +1,12 @@
 import math
-from time import time
 
 import numpy as np
 
 from scipy.sparse import coo_matrix
 
-from scipy.sparse import random
-
 from scipy import stats, sparse
+
+import matplotlib.pyplot as plt
 
 import pyqiopt as pq
 
@@ -18,9 +17,9 @@ profit_coeffs = data[99] - data[0]
 
 max_risk = 0.2
 budget = 1_000_000
-lambda_budget = 0.2
+lambda_budget = 0.5
 mu_risk = 0.5
-deviation_risk = 0.6
+deviation_risk = 0.5
 
 num_stocks = 100
 num_bits = 10
@@ -60,74 +59,80 @@ for i in range(num_stocks):
                     deviation_risk * (covar[i][j] - max_risk)**2 * (2**k) * (2**l)
                 )
 
-arr_sp = sparse.coo_matrix(Q)
-print("QUBO Matrix:")
-print(arr_sp)
-
-start = time()
-print("Sampling")
-sol = pq.solve(arr_sp, number_of_runs=1, number_of_steps=500, return_samples=True, verbose=10)
-samples = sol.samples
-print("Samples:")
-print(samples)
-
-print("Script time:", time() - start)
-
-Q = sparse.triu(Q)
-Q = Q.toarray()
-
-portfel = []
-
-for key, sample in samples.items():
-    portfel_sample = []
-    binary_array = sample[0]
-
-    for i in range(0, len(binary_array), 10):
-        binary_str = ''.join(map(str, binary_array[i:i+10]))
-        decimal_value = int(binary_str, 2)
-        portfel_sample.append(decimal_value)
-        
-    portfel.append(portfel_sample)
-
-print("Портфель:", portfel)
-
-# Проверка
 number = 0
 good = []
 good_returns = []
-for var in portfel:
-    number += 1
-    sum_ = [0] * num_stocks
-    returns_ = [0] * (num_stocks - 1)
+good_risk = []
 
-    # Сумма в портфеле на каждый день
-    for i in range(num_stocks):
-        for j in range(num_stocks):
-            sum_[i] += var[j] * data[i][j]
+max_attempts = 10
+attempts = 0
+while(good == [] and attempts < max_attempts):
+    attempts += 1
+    arr_sp = sparse.coo_matrix(Q)
+    sol = pq.solve(arr_sp, number_of_runs=1, number_of_steps=500, return_samples=True, verbose=10)
+    samples = sol.samples
 
-    # Доходности
-    for i in range(num_stocks - 1):
-        returns_[i] = (sum_[i+1] - sum_[i]) / sum_[i]
+    portfel = []
+    for key, sample in samples.items():
+        portfel_sample = []
+        binary_array = sample[0]
 
-    # Средняя доходность
-    median_returns = 0
-    for i in range (num_stocks - 1):
-        median_returns += returns_[i]
-    median_returns = median_returns / (num_stocks - 1)
-        
-    # Уровень риска
-    risk = 0
-    for i in range(num_stocks-1):
-        risk += ((returns_[i] - median_returns) ** 2) / (num_stocks - 2)
-    risk = math.sqrt((num_stocks-1) * risk)
+        for i in range(0, len(binary_array), 10):
+            binary_str = ''.join(map(str, binary_array[i:i+10]))
+            decimal_value = int(binary_str, 2)
+            portfel_sample.append(decimal_value)
+            
+        portfel.append(portfel_sample)
 
-    print(f"For VAR {number}")
-    print(f"Risk: {risk}")
-    print(f"Budget START: {sum_[0]}")
-    print(f"Budget END: {sum_[-1]}")
+    # Проверка
+    for var in portfel:
+        number += 1
+        sum_ = [0] * num_stocks
+        returns_ = [0] * (num_stocks - 1)
 
-    if budget*0.95 < sum_[0] <= budget and max_risk - 0.05 < risk < max_risk:
-        good.append(number)
-        good_returns.append(returns_)
-print(f"GOOD: {good}")
-np.save("Task1/good_returns.npy", good_returns)
+        # Сумма в портфеле на каждый день
+        for i in range(num_stocks):
+            for j in range(num_stocks):
+                sum_[i] += var[j] * data[i][j]
+
+        # Доходности
+        for i in range(num_stocks - 1):
+            returns_[i] = (sum_[i+1] - sum_[i]) / sum_[i]
+
+        # Средняя доходность
+        median_returns = 0
+        for i in range (num_stocks - 1):
+            median_returns += returns_[i]
+        median_returns = median_returns / (num_stocks - 1)
+            
+        # Уровень риска
+        risk = 0
+        for i in range(num_stocks-1):
+            risk += ((returns_[i] - median_returns) ** 2) / (num_stocks - 2)
+        risk = math.sqrt((num_stocks-1) * risk)
+
+        # Возможность вывода параметров для каждого варианта портфеля
+        # print(f"For VAR {number}")
+        # print(f"Risk: {risk}")
+        # print(f"Budget START: {sum_[0]}")
+        # print(f"Budget END: {sum_[-1]}")
+
+        if budget*0.95 < sum_[0] <= budget and max_risk - 0.05 < risk < max_risk:
+            good.append(number)
+            good_returns.append(returns_)
+            good_risk.append(risk)
+    if good:
+        print(f"Лучший найденный портфель: {good[0]}")
+        print(f"Риск: {good_risk[0]}")
+
+y_values = good_returns[0]
+x_values = np.arange(1, len(y_values) + 1)
+
+# Построение графика
+plt.figure(figsize=(10, 6))
+plt.plot(x_values, y_values, marker='o', linestyle='-', color='b')
+plt.xlabel('Days')
+plt.ylabel('Returns')
+plt.title('График доходности стратегии')
+plt.grid(True)
+plt.savefig('Task1/returns.png')
